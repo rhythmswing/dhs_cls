@@ -23,6 +23,12 @@ import numpy as np
 import tqdm
         
 class DHSTrainingModule(pl.LightningModule):
+    """
+    A PyTorch Lightning Module for training, validating, and testing DNA sequence data models.
+
+    Attributes:
+        model (nn.Module): The neural network model to be trained.
+    """
 
     def __init__(self, model: nn.Module): 
         super(DHSTrainingModule, self).__init__()
@@ -30,6 +36,17 @@ class DHSTrainingModule(pl.LightningModule):
         self.model = model
 
     def step(self, batch, batch_idx, stage='train'):
+        """
+        A generic step method for processing a single batch of data, applicable to training, validation, and testing stages.
+
+        Parameters:
+            batch (dict): The batch of data.
+            batch_idx (int): The index of the current batch.
+            stage (str, optional): The stage of processing ('train', 'val', or 'test'). Defaults to 'train'.
+
+        Returns:
+            torch.Tensor: The loss for the current batch.
+        """
         pred = self.model(batch)
         labels = batch['label']
         loss = self.loss_function(pred, labels)
@@ -50,12 +67,28 @@ class DHSTrainingModule(pl.LightningModule):
         return self.step(batch, batch_idx, stage='test')
 
     def configure_optimizers(self):
+        """
+        Configures the optimizers (and learning rate schedulers, if necessary) for training the model.
+
+        Returns:
+            torch.optim.Optimizer: The optimizer for the model.
+        """
         optimizer = AdamW(self.model.parameters(), lr=5e-6)
         #scheduler = torch.optim.lr_scheduler.StepLR(
         #    optimizer, step_size=1, gamma=0.1)
         return optimizer
 
     def loss_function(self, predictions, labels):
+        """
+        Defines the loss function for the model.
+
+        Parameters:
+            predictions (torch.Tensor): The model's predictions.
+            labels (torch.Tensor): The ground truth labels.
+
+        Returns:
+            torch.Tensor: The computed loss.
+        """
         return torch.nn.functional.binary_cross_entropy_with_logits(predictions, labels.float())
 
     # def forward(self, dna_sequences, labels):

@@ -7,6 +7,9 @@ from src.modules import DHSDetector, DHSMoEDetector, DHSMoERBFDetector
 from src.output import LinearClassificationModule, TwoLayerJointClassificationModule, TwoLayerClassificationModule  
 
 
+"""
+Defines the configuration for the various models used in the project.
+"""
 
 def filtered_dnabert_linear(n_classes):
     model = DHSDetector(base_model="zhihan1996/DNABERT-S", 

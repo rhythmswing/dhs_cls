@@ -9,7 +9,23 @@ import pandas as pd
 
 
 class DHSData(Dataset):
+    """
+    A PyTorch Dataset for handling DNA sequences with optional components.
+
+    Attributes:
+        dna_sequences (Iterable): The DNA sequences.
+        labels (Iterable): Corresponding labels for the DNA sequences.
+        components (Optional[Iterable]): Additional components related to each DNA sequence.
+    """
     def __init__(self, dna_sequences, labels, components=None):
+        """
+        Initializes the DHSData dataset.
+
+        Parameters:
+            dna_sequences (Iterable): The DNA sequences.
+            labels (Iterable): Corresponding labels for the sequences.
+            components (Optional[Iterable]): Additional components for each sequence.
+        """
         self.dna_sequences = dna_sequences
         self.labels = labels
         self.components = components
@@ -25,6 +41,16 @@ class DHSData(Dataset):
 
 
 def compute_stats(dataset: Dataset, columns: List[str] = None):
+    """
+    Computes mean and standard deviation statistics for specified columns of a dataset.
+
+    Parameters:
+        dataset (Dataset): The dataset to compute statistics for.
+        columns (List[str]): The columns to compute statistics for.
+
+    Returns:
+        dict: A dictionary where keys are column names and values are dictionaries with keys 'mean' and 'std'.
+    """
     list_of_data = []
     loader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False)
     for t in loader:
@@ -36,11 +62,29 @@ def compute_stats(dataset: Dataset, columns: List[str] = None):
 
 
 class DHSFeatherData(Dataset):
+    """
+    A PyTorch Dataset for handling DNA sequences stored in a Feather file format.
+
+    Attributes:
+        feather_data (DataFrame): Data loaded from a Feather file.
+        label_columns (Union[int, Iterable[int]]): Column indices or range for label(s).
+        feature_columns (Union[List[str], str], optional): Column names for features.
+        dna_sequence_column (str): Column name for DNA sequences.
+    """
     def __init__(self, feather_path: str, 
                  dna_sequence_column: str = 'sequence', 
                  feature_columns: Union[List[str], str] = None,
                  label_columns: Union[int, Iterable[int]] = None,
                  ) -> None:
+        """
+        Initializes the DHSFeatherData dataset from a Feather file.
+
+        Parameters:
+            feather_path (str): Path to the Feather file containing the dataset.
+            dna_sequence_column (str, optional): Column name for DNA sequences. Defaults to 'sequence'.
+            feature_columns (Union[List[str], str], optional): Column names for features.
+            label_columns (Union[int, Iterable[int]], optional): Column index or indices for label(s).
+        """
         super().__init__()
 
         self.feather_data = pd.read_feather(feather_path)
@@ -91,6 +135,16 @@ class DHSFeatherData(Dataset):
     
 
 def apply_normalization(dataset: Dataset, column_stats: dict):
+    """
+    Applies normalization to the dataset using precomputed column statistics.
+
+    Parameters:
+        dataset (Dataset): The dataset to normalize.
+        column_stats (dict): Precomputed statistics for columns to normalize.
+
+    Returns:
+        Dataset: A new dataset with normalized columns.
+    """
     class _NormalizedDataset(Dataset):
 
         def __getitem__(self, index):
@@ -103,12 +157,32 @@ def apply_normalization(dataset: Dataset, column_stats: dict):
     return _NormalizedDataset()
 
 class DHSDataModule(pl.LightningDataModule):
+    """
+    A PyTorch Lightning DataModule for handling and processing DNA sequence data.
+
+    Attributes:
+        feather_path (str): Path to the Feather file containing the dataset.
+        label_columns (Union[int, Iterable[int]]): Column indices or range for label(s).
+        feature_columns (Union[str, List[str]]): Column names for features.
+        batch_size (int): Batch size for DataLoader.
+        normalize_features (Union[bool, List[str]]): Specifies if and which features to normalize.
+    """
     
     def __init__(self, feather_path: str = None,
                  label_columns: Union[int, Iterable[int]] = None,
                  feature_columns: Union[str, List[str]] = None,
                  batch_size: int = 32,
                  normalize_features: Union[bool, List[str]] = False):
+        """
+        Initializes the DHSDataModule with dataset paths and processing parameters.
+
+        Parameters:
+            feather_path (str, optional): Path to the Feather file.
+            label_columns (Union[int, Iterable[int]], optional): Column indices for labels.
+            feature_columns (Union[str, List[str]], optional): Column names for features.
+            batch_size (int, optional): Batch size for the DataLoader.
+            normalize_features (Union[bool, List[str]], optional): Whether to normalize features.
+        """
         super(DHSDataModule, self).__init__()
 
         
@@ -119,26 +193,7 @@ class DHSDataModule(pl.LightningDataModule):
         self.normalize_features = normalize_features
 
     def prepare_data(self):
-        """
-        self.master_data = pd.read_feather(self.feather_path)
-        if isinstance(self.label_columns, int):
-            self.bio_sample_labels = self.master_data.iloc[:, self.label_columns]
-        elif isinstance(self.label_columns, Iterable):
-            assert len(self.label_columns) == 2
-            if len(self.label_columns) == 1:
-                self.bio_sample_labels = self.master_data.iloc[:, self.label_columns[0]:]
-            elif len(self.label_columns) == 2:
-                self.bio_sample_labels = self.master_data.iloc[:, self.label_columns[0]:self.label_columns[1]]
-        else:
-            raise ValueError("label_columns must be an int or an iterable of length 2")
 
-        self.dna_sequences = np.array(self.master_data["sequence"].values.tolist())
-        self.bio_sample_labels = np.array(self.bio_sample_labels)
-        self.components = np.array(self.master_data["component"].values.tolist())
-
-        print("Data prepared, shape:")
-        print(self.dna_sequences.shape, self.bio_sample_labels.shape)
-        """
         self.master_dataset = DHSFeatherData(self.feather_path, 
                  label_columns=self.label_columns, feature_columns=self.feature_columns)
         
@@ -156,11 +211,7 @@ class DHSDataModule(pl.LightningDataModule):
         np.random.shuffle(idx)
         train_idx, val_idx, test_idx = np.split(idx, (np.cumsum(train_val_test[:-1]) * len(idx)).astype(int))
 
-        
 
-        # self.train_data = DHSData(self.dna_sequences[train_idx], self.bio_sample_labels[train_idx], self.components[train_idx])
-        # self.val_data = DHSData(self.dna_sequences[val_idx], self.bio_sample_labels[val_idx], self.components[val_idx])
-        # self.test_data = DHSData(self.dna_sequences[test_idx], self.bio_sample_labels[test_idx], self.components[test_idx])
         self.train_data = Subset(self.master_dataset, train_idx)
 
         self.val_data = Subset(self.master_dataset, val_idx)

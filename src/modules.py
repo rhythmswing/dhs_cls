@@ -5,9 +5,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from transformers import AutoTokenizer, AutoModel
-from typing import List
+from typing import List, Dict
 
 class IdentityDNAFeatureTransformer(torch.nn.Module):
+    """
+    A pass-through transformer module for DNA feature vectors.
+
+    This module acts as a placeholder in the pipeline, returning the input without any modification.
+    """
     def __init__(self):
         super(IdentityDNAFeatureTransformer, self).__init__()
 
@@ -15,6 +20,19 @@ class IdentityDNAFeatureTransformer(torch.nn.Module):
         return x
 
 class GaussianSmearing(nn.Module):
+    """
+    Applies Gaussian smearing to input distances, transforming them into a radial basis function (RBF) space.
+
+    Parameters:
+        cutoff_lower (float): The lower bound of the distance cutoff.
+        cutoff_upper (float): The upper bound of the distance cutoff.
+        num_rbf (int): The number of radial basis functions.
+        trainable (bool): If True, the parameters of the Gaussian functions are trainable.
+
+    Attributes:
+        coeff (Parameter or Buffer): The coefficient used in the Gaussian function, representing the width of the Gaussian.
+        offset (Parameter or Buffer): The offset for each Gaussian basis function, determining its center.
+    """
     def __init__(self, cutoff_lower=0.0, cutoff_upper=5.0, num_rbf=50, trainable=True):
         super(GaussianSmearing, self).__init__()
         self.cutoff_lower = cutoff_lower
@@ -45,6 +63,18 @@ class GaussianSmearing(nn.Module):
         return torch.exp(self.coeff * torch.pow(dist, 2))
         
 class DHSDetector(torch.nn.Module):
+    """
+    A DNA sequences classifier using a pretrained transformer model and an optional feature transformer.
+
+    Parameters:
+        base_model (str): Identifier for the pretrained transformer model.
+        dna_feature_transformer (torch.nn.Module, optional): A module to transform the extracted DNA features.
+        classification_module (torch.nn.Module): A module for classifying the transformed features.
+
+    Attributes:
+        dna_tokenizer (AutoTokenizer): The tokenizer for the DNA sequences.
+        dna_encoder_model (AutoModel): The encoder model for generating DNA sequence embeddings.
+    """
     def __init__(self, base_model="zhihan1996/DNABERT-S", dna_feature_transformer=None, classification_module=None):
         super(DHSDetector, self).__init__()
 
@@ -62,6 +92,15 @@ class DHSDetector(torch.nn.Module):
         self.classification_module = classification_module
 
     def encode_dna(self, dna_sequences: List[str]):
+        """
+        Encodes a list of DNA sequences into embeddings.
+
+        Parameters:
+            dna_sequences (List[str]): The DNA sequences to encode.
+
+        Returns:
+            Tensor: The embeddings of the DNA sequences.
+        """
         inputs = self.dna_tokenizer(dna_sequences, return_tensors="pt", padding=True)
         device = list(self.dna_encoder_model.parameters())[0].device
         inputs = {key: value.to(device) for key, value in inputs.items()}   
@@ -69,8 +108,16 @@ class DHSDetector(torch.nn.Module):
         embeddings = outputs[0].mean(dim=1)
         return embeddings
 
+    def forward(self, batch: Dict):
+        """
+        Forward pass for the DHSDetector.
 
-    def forward(self, batch):
+        Parameters:
+            batch (dict): A batch containing 'sequence' as a key with a list of DNA sequences.
+
+        Returns:
+            Tensor: The classification predictions for the batch.
+        """
         sequences = batch['sequence']
         embeddings = self.encode_dna(sequences)
         transformed_embeddings = self.dna_feature_transformer(embeddings)
@@ -78,6 +125,22 @@ class DHSDetector(torch.nn.Module):
         return predictions
 
 class DHSMoEDetector(nn.Module):
+    """
+    A mixture of experts (MoE) model for DNA sequence detection, utilizing a transformer for sequence encoding and multiple classification modules for MoE predictions.
+    Experts are selected based on Main DHS Vocabulary Components. "component" attribute is mandatory for the input batch.
+
+    Parameters:
+        base_model (str): Identifier for the pretrained transformer model.
+        dna_feature_transformer (torch.nn.Module, optional): Module to transform the extracted DNA features. Defaults to an identity transformer if None is provided.
+        classification_cls (nn.Module): The class of the classification module to be instantiated for each expert.
+        classification_kwargs (dict): Arguments for initializing the classification modules.
+        ncomponents (int): The number of expert components in the MoE model.
+
+    Attributes:
+        dna_tokenizer (AutoTokenizer): The tokenizer for DNA sequences.
+        dna_encoder_model (AutoModel): The encoder model for generating DNA sequence embeddings.
+        classification_modules (torch.nn.ModuleList): A list of classification modules, one for each expert.
+    """
     def __init__(self, base_model="zhihan1996/DNABERT-S", dna_feature_transformer=None,
                  classification_cls: nn.Module =None, 
                  classification_kwargs: dict = None,
@@ -105,6 +168,15 @@ class DHSMoEDetector(nn.Module):
         return embeddings
 
     def forward(self, batch):
+        """
+        Forward pass for processing a batch of DNA sequences through the MoE model.
+
+        Parameters:
+            batch (dict): A batch containing 'sequence' and 'component' keys with DNA sequences and their respective component indices.
+
+        Returns:
+            Tensor: The combined predictions from the expert components for each sequence in the batch.
+        """
         sequences = batch['sequence']
         component_idx = batch['component']
         embeddings = self.encode_dna(sequences)
@@ -128,12 +200,29 @@ class DHSMoEDetector(nn.Module):
 
         return predictions
         
-        # return predictions for each component
 
 
 
 
 class DHSMoERBFDetector(nn.Module):
+    """
+    A mixture of experts (MoE) model for DNA sequence detection, incorporating radial basis function (RBF) feature transformation for enhanced feature representation.
+
+    Parameters:
+        base_model (str): Identifier for the pretrained transformer model.
+        dna_feature_transformer (torch.nn.Module, optional): Module to transform the extracted DNA features. Defaults to an identity transformer if None is provided.
+        classification_cls (nn.Module): The class of the classification module to be instantiated for each expert.
+        classification_kwargs (dict): Arguments for initializing the classification modules.
+        feature_columns (List[str]): List of column names for additional features to be transformed via RBF.
+        ncomponents (int): The number of expert components in the MoE model.
+        rbf_dimension (int): The dimensionality of the RBF-transformed feature space.
+
+    Attributes:
+        dna_tokenizer (AutoTokenizer): The tokenizer for DNA sequences.
+        dna_encoder_model (AutoModel): The encoder model for generating DNA sequence embeddings.
+        rbf_layers (torch.nn.ModuleList): A list of GaussianSmearing modules for RBF transformation of additional features.
+        classification_modules (torch.nn.ModuleList): A list of classification modules, one for each expert.
+    """
     def __init__(self, base_model="zhihan1996/DNABERT-S", dna_feature_transformer=None,
                  classification_cls: nn.Module =None, 
                  classification_kwargs: dict = None,
@@ -172,6 +261,15 @@ class DHSMoERBFDetector(nn.Module):
         return embeddings
 
     def forward(self, batch):
+        """
+        Forward pass for processing a batch of DNA sequences through the MoE model with RBF feature transformation.
+
+        Parameters:
+            batch (dict): A batch containing 'sequence', 'component', and additional feature columns specified in `feature_columns`.
+
+        Returns:
+            Tensor: The combined predictions from the expert components for each sequence in the batch, utilizing RBF-transformed features.
+        """
         sequences = batch['sequence']
         component_idx = batch['component']
 

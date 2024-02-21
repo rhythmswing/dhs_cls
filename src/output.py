@@ -2,6 +2,9 @@
 import torch
 
 class LinearClassificationModule(torch.nn.Module):
+    """
+    Simple linear layer for classification.
+    """
 
     def __init__(self, input_size, output_size):
         super(LinearClassificationModule, self).__init__()
@@ -11,6 +14,9 @@ class LinearClassificationModule(torch.nn.Module):
         return self.net(x)
 
 class TwoLayerClassificationModule(torch.nn.Module):
+    """
+    Simple two-layer classification.
+    """
 
     def __init__(self, input_size, hidden_size, output_size):
         super(TwoLayerClassificationModule, self).__init__()
@@ -25,6 +31,9 @@ class TwoLayerClassificationModule(torch.nn.Module):
 
 
 class TwoLayerJointClassificationModule(torch.nn.Module):
+    """
+    Two-layer classification module with incorporation of additional features.
+    """
     
     def __init__(self, input_size, hidden_size, output_size, additional_feature_size):
         super(TwoLayerJointClassificationModule, self).__init__()
