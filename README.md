@@ -38,7 +38,7 @@ Use `run.sh MODELTYPE` to train a model. MODELTYPE can be one of the following:
 ### Evaluation
 The best results is achieved with moe_linear. The script will call `train.py` and store best model checkpoint in experiments/MODELTYPE.
 
-For evaluation, run `eval.py PATH_TO_CHECKPOINT --model_type MODELTYPE --input PATH_TO_FILTERED_DATA`.
+For evaluation, run `python eval.py PATH_TO_CHECKPOINT --model_type MODELTYPE --input PATH_TO_FILTERED_DATA`.
 PATH_TO_FILTERED_DATA should be data/filtered_dataset.ftr by default. 
 
 
