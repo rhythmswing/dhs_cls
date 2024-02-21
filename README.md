@@ -15,7 +15,8 @@ See requirements.txt. Use `pip install -r requirements.txt` to install relevant 
 
 ### Error using Triton. 
 If error 
->TypeError("dot() got an unexpected keyword argument 'trans_b'") 
+>TypeError("dot() got an unexpected keyword argument 'trans_b'")
+>
 occurs during training, uninstall triton package by `pip uninstall triton`. 
 
 
