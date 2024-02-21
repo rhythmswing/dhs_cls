@@ -9,17 +9,23 @@ Our method base on DNABert-S and an Mixture-of-Expert that selects prediction mo
 
 ## Requirements
 
-Mostly, pytorch + pytorch_lightning + wandb. 
-See requirements.txt. 
+Mostly, pytorch + pytorch_lightning + wandb + transformers. transformers needs to be 4.2.9 to correctly infer DNABert's model class.
+See requirements.txt. Use `pip install -r requirements.txt` to install relevant packages.
+
+
+### Error using Triton. 
+If error 
+>TypeError("dot() got an unexpected keyword argument 'trans_b'") 
+occurs during training, uninstall triton package by `pip uninstall triton`. 
 
 
 ## Instructions
 
 ### Data Preparation
-Run data/master_dataset.ipynb and filter_master.ipynb to generate data/filtered_dataset.ftr.
+Run `data/master_dataset.ipynb` and `filter_master.ipynb` to generate `data/filtered_dataset.ftr`.
 
 ### Training
-Use run.sh MODELTYPE to train a model. MODELTYPE can be one of the following:
+Use `run.sh MODELTYPE` to train a model. MODELTYPE can be one of the following:
 
 - linear
 - two_layer
@@ -29,10 +35,13 @@ Use run.sh MODELTYPE to train a model. MODELTYPE can be one of the following:
 
 
 ### Evaluation
-The best results is achieved with moe_linear. The script will call train.py and store best model checkpoint in experiments/MODELTYPE.
+The best results is achieved with moe_linear. The script will call `train.py` and store best model checkpoint in experiments/MODELTYPE.
 
-For evaluation, run eval.py PATH_TO_CHECKPOINT --model_type MODELTYPE --input PATH_TO_FILTERED_DATA.
+For evaluation, run `eval.py PATH_TO_CHECKPOINT --model_type MODELTYPE --input PATH_TO_FILTERED_DATA`.
 PATH_TO_FILTERED_DATA should be data/filtered_dataset.ftr by default. 
+
+
+## Example 
 
 
 ## Code

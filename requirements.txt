@@ -1,0 +1,11 @@
+# pip install -r requirements.txt
+huggingface-hub==0.20.3
+pandas
+pyarrow
+scikit-learn
+transformers==4.29
+pytorch-lightning==2.2.0
+scipy==1.12.0
+torch==2.2.0
+wandb==0.16.3
+einops
