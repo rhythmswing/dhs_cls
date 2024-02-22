@@ -1,4 +1,4 @@
-# dhs_cls
+# FETMET: Predicting the Cell and Tissue Specificity of DHS with DNABert and Genome Sequence Component based Mixture of Export
 
 The human genome, a blueprint of biological diversity and complexity, harbors regions highly susceptible to regulatory mechanisms that dictate the expression of genes. Among these, DNase I hypersensitive sites (DHSs) stand out as pivotal markers, offering insights into the regulatory DNA landscape. In a groundbreaking study by Meuleman et al., in 2020 the creation of high-resolution maps of DHSs across a wide array of human biosamples—encompassing 438 distinct cell and tissue types and states—has marked a significant advancement in our understanding of the genome's regulatory dimensions. 
 
