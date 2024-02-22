@@ -42,8 +42,6 @@ For evaluation, run `python eval.py PATH_TO_CHECKPOINT --model_type MODELTYPE --
 PATH_TO_FILTERED_DATA should be data/filtered_dataset.ftr by default. 
 
 
-## Example 
-
 
 ## Code
 src/ contains all model code with self-explanatory file names. In notebooks/linear_model.ipynb, classical baselines are implemented. 
